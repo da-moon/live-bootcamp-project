@@ -1,0 +1,88 @@
+{
+  "name": "live-bootcamp-project",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/live-bootcamp-project",
+  "features": {
+    "ghcr.io/devcontainers/features/nix:1": {
+      "multiUser": true,
+      "extraNixConfig": "experimental-features = nix-command flakes"
+    },
+    "ghcr.io/coder/devcontainer-features/code-server:1": {
+      "auth": "none",
+      "port": 13337
+    }
+  },
+  "containerEnv": {
+    "AUTH_SERVICE_HOST_NAME": "localhost",
+    "AUTH_SERVICE_IP": "localhost"
+  },
+  "forwardPorts": [8000, 3000],
+  "portsAttributes": {
+    "8000": {
+      "label": "App Service"
+    },
+    "3000": {
+      "label": "Auth Service"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml"
+      ]
+    },
+    "coder": {
+      "autoStart": true,
+      "apps": [
+        {
+          "slug": "code-server",
+          "displayName": "code-server",
+          "url": "http://${localEnv:FEATURE_CODE_SERVER_OPTION_HOST:127.0.0.1}:${localEnv:FEATURE_CODE_SERVER_OPTION_PORT:13337}/?folder=${containerWorkspaceFolder}",
+          "openIn": "slim-window",
+          "share": "owner",
+          "icon": "/icon/code.svg",
+          "group": "Web Editors",
+          "order": 1,
+          "healthCheck": {
+            "url": "http://${localEnv:FEATURE_CODE_SERVER_OPTION_HOST:127.0.0.1}:${localEnv:FEATURE_CODE_SERVER_OPTION_PORT:13337}/healthz",
+            "interval": 5,
+            "threshold": 6
+          }
+        },
+        {
+          "slug": "app-service",
+          "displayName": "App Service",
+          "url": "http://localhost:8000",
+          "openIn": "tab",
+          "share": "owner",
+          "subdomain": true,
+          "order": 10,
+          "healthCheck": {
+            "url": "http://localhost:8000",
+            "interval": 5,
+            "threshold": 24
+          }
+        },
+        {
+          "slug": "auth-service",
+          "displayName": "Auth Service",
+          "url": "http://localhost:3000",
+          "openIn": "tab",
+          "share": "owner",
+          "subdomain": true,
+          "order": 11,
+          "healthCheck": {
+            "url": "http://localhost:3000",
+            "interval": 5,
+            "threshold": 24
+          }
+        }
+      ]
+    }
+  },
+  "postCreateCommand": ".devcontainer/scripts/post_create.sh",
+  "postStartCommand": ".devcontainer/scripts/start_services.sh",
+  "waitFor": "postCreateCommand"
+}

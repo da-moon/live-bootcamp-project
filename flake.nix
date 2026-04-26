@@ -46,6 +46,7 @@
             typos             # Source code spell checking
             cargo-llvm-cov    # Code coverage
             bacon             # Background rust code checker
+            starship          # Prompt initialized by the shell hook
             # Build and performance
             sccache           # Compilation cache for faster builds
             pkg-config
