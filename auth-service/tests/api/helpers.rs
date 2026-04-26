@@ -34,6 +34,11 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
+    // {
+    //   "email": "user@example.com",
+    //   "password": "string",
+    //   "requires2FA": true
+    // }
 
     pub async fn post_signup(&self) -> reqwest::Response {
         self.http_client
