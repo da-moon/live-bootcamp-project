@@ -1,4 +1,8 @@
-use axum::{http::StatusCode, response::IntoResponse, Json};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use getset::{CloneGetters, CopyGetters, Getters, MutGetters, Setters, WithSetters};
 use serde::{Deserialize, Serialize};
 
@@ -6,47 +10,19 @@ use serde::{Deserialize, Serialize};
 pub struct Request {
     pub email: String,
     pub password: String,
-    pub requires2FA: bool,
+    #[serde(rename = "requires2FA")]
+    pub requires_2fa: bool,
 }
-// TODO: maybe change it to an enum
-#[derive(Serialize)]
-pub struct SuccessResponse {
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct Success {
     pub message: String,
 }
-// TODO return success response type
-pub async fn signup(request: Json<Request>) -> impl IntoResponse {
-    StatusCode::OK.into_response()
-    // Success Case:
-    // Status code: 201
-    // Message: User created successfully
-}
 
-// '400':
-//   description: Invalid input
-//   content:
-//     application/json:
-//       schema:
-//         type: object
-//         properties:
-//           error:
-//             type: string
-// '409':
-//   description: Email already exists
-//   content:
-//     application/json:
-//       schema:
-//         type: object
-//         properties:
-//           error:
-//             type: string
-// '422':
-//   description: Unprocessable content
-// '500':
-//   description: Unexpected error
-//   content:
-//     application/json:
-//       schema:
-//         type: object
-//         properties:
-//           error:
-//             type: string
+pub async fn signup(Json(request): Json<Request>) -> impl IntoResponse {
+    (
+        StatusCode::CREATED,
+        Json(Success {
+            message: "User created successfully".to_string(),
+        }),
+    )
+}
