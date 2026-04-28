@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WORKSPACE_FOLDER="/workspaces/live-bootcamp-project"
+NIX_FLAKE="path:$ROOT"
 
 cd "$ROOT"
 
@@ -11,12 +12,38 @@ if ! command -v nix >/dev/null 2>&1; then
   exit 1
 fi
 
+ensure_nix_daemon() {
+  if nix store info >/dev/null 2>&1; then
+    return
+  fi
+
+  if ! pgrep -x nix-daemon >/dev/null 2>&1; then
+    if [ "$(id -u)" = "0" ]; then
+      ( . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh; /nix/var/nix/profiles/default/bin/nix-daemon > /tmp/nix-daemon.log 2>&1 ) &
+    elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+      sudo -n sh -c '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh; /nix/var/nix/profiles/default/bin/nix-daemon > /tmp/nix-daemon.log 2>&1 &'
+    fi
+  fi
+
+  for _ in {1..40}; do
+    if nix store info >/dev/null 2>&1; then
+      return
+    fi
+    sleep 0.25
+  done
+
+  echo "nix daemon is not responding; see /tmp/nix-daemon.log." >&2
+  return 1
+}
+
+ensure_nix_daemon
+
 echo "Validating Nix development shell..."
-nix develop "$ROOT" --command bash -lc 'rustc --version && cargo --version'
+nix develop "$NIX_FLAKE" --command bash -lc 'rustc --version && cargo --version'
 
 echo "Fetching Rust dependencies..."
-nix develop "$ROOT" --command bash -lc 'cd auth-service && cargo fetch --locked'
-nix develop "$ROOT" --command bash -lc 'cd app-service && cargo fetch --locked'
+nix develop "$NIX_FLAKE" --command bash -lc 'cd auth-service && cargo fetch --locked'
+nix develop "$NIX_FLAKE" --command bash -lc 'cd app-service && cargo fetch --locked'
 
 configure_bashrc() {
   local bashrc="${HOME}/.bashrc"
