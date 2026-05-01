@@ -1,0 +1,41 @@
+{
+  "name": "nix-flake-devcontainer",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "workspaceMount": "type=bind,source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename}",
+  "features": {
+    "ghcr.io/devcontainers/features/nix:1": {
+      "multiUser": true,
+      "extraNixConfig": "experimental-features = nix-command flakes"
+    },
+    "ghcr.io/coder/devcontainer-features/code-server:1": {
+      "auth": "none",
+      "port": 13337
+    }
+  },
+  "customizations": {
+    "coder": {
+      "autoStart": true,
+      "apps": [
+        {
+          "slug": "code-server",
+          "displayName": "code-server",
+          "url": "http://${localEnv:FEATURE_CODE_SERVER_OPTION_HOST:127.0.0.1}:${localEnv:FEATURE_CODE_SERVER_OPTION_PORT:13337}/?folder=${containerWorkspaceFolder}",
+          "openIn": "slim-window",
+          "share": "owner",
+          "icon": "/icon/code.svg",
+          "group": "Web Editors",
+          "order": 1,
+          "healthCheck": {
+            "url": "http://${localEnv:FEATURE_CODE_SERVER_OPTION_HOST:127.0.0.1}:${localEnv:FEATURE_CODE_SERVER_OPTION_PORT:13337}/healthz",
+            "interval": 5,
+            "threshold": 6
+          }
+        }
+      ]
+    }
+  },
+  "postCreateCommand": ".devcontainer/scripts/post_create.sh",
+  "waitFor": "postCreateCommand"
+}

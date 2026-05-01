@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-STATE_DIR="/tmp/live-bootcamp-project"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# shellcheck disable=SC1091
+. "$SCRIPT_DIR/lib/devcontainer-common.sh"
+
+devcontainer_load_project_env "$ROOT"
+
+STATE_DIR="$(devcontainer_state_dir "$ROOT")"
+SERVICES_FILE="$(devcontainer_services_file "$ROOT")"
 
 stop_service() {
   local name="$1"
@@ -44,5 +53,28 @@ stop_service() {
   echo "Stopped $name."
 }
 
-stop_service "app-service"
-stop_service "auth-service"
+if [ ! -s "$SERVICES_FILE" ]; then
+  echo "No services configured at $SERVICES_FILE."
+  exit 0
+fi
+
+services=()
+while IFS= read -r line || [ -n "$line" ]; do
+  if [[ -z "${line//[[:space:]]/}" || "$line" == \#* ]]; then
+    continue
+  fi
+
+  if [[ "$line" == *$'\t'* ]]; then
+    IFS=$'\t' read -r name _ <<<"$line"
+  else
+    read -r name _ <<<"$line"
+  fi
+
+  if [ -n "$name" ]; then
+    services+=("$name")
+  fi
+done <"$SERVICES_FILE"
+
+for ((idx = ${#services[@]} - 1; idx >= 0; idx--)); do
+  stop_service "${services[$idx]}"
+done

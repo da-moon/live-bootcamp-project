@@ -15,6 +15,7 @@
     }
   },
   "containerEnv": {
+    "DEVCONTAINER_PROJECT_PROFILE": "live-bootcamp-project",
     "AUTH_SERVICE_HOST_NAME": "localhost",
     "AUTH_SERVICE_IP": "localhost"
   },

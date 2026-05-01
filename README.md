@@ -21,6 +21,12 @@ The repo includes a `.devcontainer` setup for Coder. It installs Nix in the
 container, enters this repo's flake dev shell for interactive Bash sessions, and
 auto-starts both Rust services with `cargo watch`.
 
+The reusable Nix/Coder base lives in `.devcontainer/scripts/lib`. This repo's
+service-specific behavior is isolated in the
+`.devcontainer/project/live-bootcamp-project` profile and enabled by
+`DEVCONTAINER_PROJECT_PROFILE` in `.devcontainer/devcontainer.json`. See
+`.devcontainer/README.md` before copying the setup into another project.
+
 Your Coder template still needs devcontainer support enabled, including Docker
 and `@devcontainers/cli`, so Coder can discover and run `.devcontainer/devcontainer.json`.
 
