@@ -45,6 +45,11 @@ Restart the services manually if needed:
 .devcontainer/scripts/start_services.sh
 ```
 
+If an older devcontainer build freezes when opening a shell or SSH session,
+rebuild or recreate the devcontainer from the Coder dashboard after pulling the
+latest repo changes. The rebuild reruns `postCreateCommand` and replaces the old
+shell auto-enter block.
+
 The app's login/logout links still point at `localhost:3000`. That works for
 local forwarding and Coder Desktop; when using only browser-based Coder dashboard
 apps, open the `Auth Service` app button directly if your browser cannot resolve

@@ -8,12 +8,13 @@ NIX_FLAKE="path:$ROOT"
 mkdir -p "$STATE_DIR"
 
 ensure_nix_daemon() {
-  if nix store info >/dev/null 2>&1; then
+  if nix store ping >/dev/null 2>&1; then
     return
   fi
 
   if ! pgrep -x nix-daemon >/dev/null 2>&1; then
     if [ "$(id -u)" = "0" ]; then
+      # shellcheck disable=SC1091
       ( . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh; /nix/var/nix/profiles/default/bin/nix-daemon > /tmp/nix-daemon.log 2>&1 ) &
     elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
       sudo -n sh -c '. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh; /nix/var/nix/profiles/default/bin/nix-daemon > /tmp/nix-daemon.log 2>&1 &'
@@ -21,7 +22,7 @@ ensure_nix_daemon() {
   fi
 
   for _ in {1..40}; do
-    if nix store info >/dev/null 2>&1; then
+    if nix store ping >/dev/null 2>&1; then
       return
     fi
     sleep 0.25
