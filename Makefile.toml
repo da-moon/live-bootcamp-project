@@ -1,0 +1,191 @@
+[config]
+default_to_workspace = false
+
+[env]
+AUTH_SERVICE_HOST_NAME = "localhost"
+AUTH_SERVICE_IP = "localhost"
+STATE_DIR = "/tmp/live-bootcamp-project"
+
+# --- Setup --------------------------------------------------------------------
+
+[tasks.setup]
+description = "Fetch all dependencies (run once after clone)"
+script = [
+    "echo '==> Fetching auth-service dependencies...'",
+    "cd auth-service && cargo fetch --locked",
+    "echo '==> Fetching app-service dependencies...'",
+    "cd app-service && cargo fetch --locked",
+    "echo '==> Setup complete.'"
+]
+
+# --- Services -----------------------------------------------------------------
+
+[tasks.pre-start]
+description = "Ensure state directory exists"
+private = true
+script = ["mkdir -p ${STATE_DIR}"]
+
+[tasks.start-auth]
+description = "Start auth-service with hot reload"
+dependencies = ["pre-start"]
+script = [
+    '''
+    PID_FILE="${STATE_DIR}/auth-service.pid"
+    LOG_FILE="${STATE_DIR}/auth-service.log"
+
+    if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+        echo "auth-service is already running (pid $(cat "$PID_FILE"))"
+        exit 0
+    fi
+
+    : > "$LOG_FILE"
+    cd auth-service
+    nohup cargo watch -q -c -w src/ -w assets/ -x run >> "$LOG_FILE" 2>&1 &
+    echo "$!" > "$PID_FILE"
+    echo "Started auth-service on port 3000. Logs: $LOG_FILE"
+    '''
+]
+
+[tasks.start-app]
+description = "Start app-service with hot reload"
+dependencies = ["pre-start"]
+script = [
+    '''
+    PID_FILE="${STATE_DIR}/app-service.pid"
+    LOG_FILE="${STATE_DIR}/app-service.log"
+
+    if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+        echo "app-service is already running (pid $(cat "$PID_FILE"))"
+        exit 0
+    fi
+
+    : > "$LOG_FILE"
+    cd app-service
+    nohup cargo watch -q -c -w src/ -w assets/ -w templates/ -x run >> "$LOG_FILE" 2>&1 &
+    echo "$!" > "$PID_FILE"
+    echo "Started app-service on port 8000. Logs: $LOG_FILE"
+    '''
+]
+
+[tasks.start]
+description = "Start all services"
+dependencies = ["start-auth", "start-app"]
+
+# --- Stop ---------------------------------------------------------------------
+
+[tasks.stop-auth]
+description = "Stop auth-service"
+script = [
+    '''
+    PID_FILE="${STATE_DIR}/auth-service.pid"
+    if [ ! -f "$PID_FILE" ]; then
+        echo "auth-service is not running."
+        exit 0
+    fi
+
+    PID="$(cat "$PID_FILE")"
+    if [ -z "$PID" ] || ! kill -0 "$PID" 2>/dev/null; then
+        rm -f "$PID_FILE"
+        echo "auth-service had a stale pid file."
+        exit 0
+    fi
+
+    echo "Stopping auth-service..."
+    kill -TERM "$PID" 2>/dev/null || true
+    for i in $(seq 1 20); do
+        if ! kill -0 "$PID" 2>/dev/null; then
+            rm -f "$PID_FILE"
+            echo "Stopped auth-service."
+            exit 0
+        fi
+        sleep 0.25
+    done
+    kill -KILL "$PID" 2>/dev/null || true
+    rm -f "$PID_FILE"
+    echo "Stopped auth-service (forced)."
+    '''
+]
+
+[tasks.stop-app]
+description = "Stop app-service"
+script = [
+    '''
+    PID_FILE="${STATE_DIR}/app-service.pid"
+    if [ ! -f "$PID_FILE" ]; then
+        echo "app-service is not running."
+        exit 0
+    fi
+
+    PID="$(cat "$PID_FILE")"
+    if [ -z "$PID" ] || ! kill -0 "$PID" 2>/dev/null; then
+        rm -f "$PID_FILE"
+        echo "app-service had a stale pid file."
+        exit 0
+    fi
+
+    echo "Stopping app-service..."
+    kill -TERM "$PID" 2>/dev/null || true
+    for i in $(seq 1 20); do
+        if ! kill -0 "$PID" 2>/dev/null; then
+            rm -f "$PID_FILE"
+            echo "Stopped app-service."
+            exit 0
+        fi
+        sleep 0.25
+    done
+    kill -KILL "$PID" 2>/dev/null || true
+    rm -f "$PID_FILE"
+    echo "Stopped app-service (forced)."
+    '''
+]
+
+[tasks.stop]
+description = "Stop all services (reverse order)"
+dependencies = ["stop-app", "stop-auth"]
+
+[tasks.restart]
+description = "Restart all services"
+dependencies = ["stop", "start"]
+
+# --- Logs ---------------------------------------------------------------------
+
+[tasks.logs-auth]
+description = "Tail auth-service logs"
+script = ["tail -f ${STATE_DIR}/auth-service.log"]
+
+[tasks.logs-app]
+description = "Tail app-service logs"
+script = ["tail -f ${STATE_DIR}/app-service.log"]
+
+# --- Development --------------------------------------------------------------
+
+[tasks.test]
+description = "Run all tests"
+command = "cargo"
+args = ["nextest", "run"]
+
+[tasks.lint]
+description = "Run clippy and typos"
+script = [
+    "cargo clippy --all-targets -- -D warnings",
+    "typos"
+]
+
+[tasks.audit]
+description = "Run security audit"
+command = "cargo"
+args = ["audit"]
+
+[tasks.check-deps]
+description = "Check for unused and outdated dependencies"
+script = [
+    "echo '==> Checking for unused dependencies...'",
+    "cargo machete",
+    "echo '==> Checking for outdated dependencies...'",
+    "cargo outdated"
+]
+
+[tasks.coverage]
+description = "Generate code coverage report"
+command = "cargo"
+args = ["llvm-cov"]

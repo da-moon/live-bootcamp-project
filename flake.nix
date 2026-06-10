@@ -41,6 +41,9 @@
             cargo-edit        # Manage dependencies (cargo add/rm)
             cargo-outdated    # Check for outdated dependencies
 
+            # Task runner
+            cargo-make        # Task runner (Makefile.toml)
+
             # Code quality tools
             cargo-deny        # Dependency auditing, license compliance
             typos             # Source code spell checking
@@ -64,14 +67,15 @@
             echo "Rust: $(rustc --version | cut -d' ' -f2)"
             ${if muslTarget != null then ''echo "Musl Target: ${muslTarget}"'' else ""}
             echo ""
-            echo "Development Tools:"
-            echo "  cargo watch -x run          - Auto-rebuild on changes"
-            echo "  cargo nextest run           - Run tests with better output"
-            echo "  cargo audit                 - Check for vulnerabilities"
-            echo "  cargo machete               - Find unused dependencies"
-            echo "  cargo deny check            - Audit dependencies"
-            echo "  typos                       - Check spelling"
-            echo "  cargo llvm-cov              - Code coverage"
+            echo "Tasks (cargo-make):"
+            echo "  makers setup                - Fetch all dependencies"
+            echo "  makers start                - Start all services"
+            echo "  makers stop                 - Stop all services"
+            echo "  makers test                 - Run tests"
+            echo "  makers lint                 - Run clippy + typos"
+            echo "  makers audit                - Security audit"
+            echo "  makers coverage             - Code coverage"
+            echo "  makers check-deps           - Unused/outdated deps"
             echo "========================================"
 
             # Enable sccache for faster rebuilds
